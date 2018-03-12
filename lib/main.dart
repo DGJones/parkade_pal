@@ -3,9 +3,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:parkade_pal/ParkadeInfo.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
+  _initializeLocale();
   runApp(new ParkadePalApp());
+}
+
+void _initializeLocale() {
+  Intl.defaultLocale = "en_CA";
+  var dateInitializationFuture = initializeDateFormatting("en_CA");
+  Future.wait([dateInitializationFuture]);
 }
 
 class ParkadePalApp extends StatelessWidget {
@@ -30,6 +39,7 @@ class ParkadeState extends State<MainScreen> {
   final Uri _url = Uri.parse("https://www.calgaryparking.com/parkadeRssFeed/availability/lot/feed.rss");
   final CalgaryParkades _calgaryParkades = new CalgaryParkades();
 
+  Text _lastUpdate = new Text("Refresh to see updates");
   ListView _parkadesListView = new ListView(
     shrinkWrap: true,
     padding: const EdgeInsets.all(20.0),
@@ -45,7 +55,10 @@ class ParkadeState extends State<MainScreen> {
             icon: new Icon(Icons.refresh),
             onPressed: () { _refresh(); },
           )]),
-      body: _parkadesListView
+      body: new Column(children: <Widget>[
+        _parkadesListView,
+        _lastUpdate
+        ])
     );
   }
 
@@ -59,6 +72,7 @@ class ParkadeState extends State<MainScreen> {
         padding: const EdgeInsets.all(20.0),
         children: cards.toList(),
       );
+      _lastUpdate = new Text(new DateFormat.yMd().add_jms().format(_calgaryParkades.lastUpdate));
     });
   }
 
@@ -93,12 +107,25 @@ class ParkadeCard extends StatelessWidget {
         child: new Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          new Text(info.name),
           new Row (children: <Widget> [
-            new Expanded(child: new Center(child: new Text("Available: ${info.availableStalls}"))),
-            new Expanded(child: new Center(child: new Text("Accessible: ${info.accessibleStalls}")))
+            new Align(
+                alignment: Alignment.centerLeft,
+                child: new Row ( children: <Widget> [
+                  new Icon(Icons.local_parking),
+                  new Text("${info.availableStalls}")
+                ])
+            ),
+            new Expanded(
+                child: new Center(child: new Text(info.name))
+            ),
+            new Align(
+              alignment: Alignment.centerLeft,
+              child: new Row ( children: <Widget> [
+                new Text("${info.accessibleStalls}"),
+                new Icon(Icons.accessible)
+              ])
+            )
           ]),
-          new Text(info.publishedAt)
         ])
     );
   }
